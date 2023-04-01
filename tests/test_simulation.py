@@ -51,17 +51,17 @@ def test_simulation_accuracy():
     
     """
     data = build_data(5,3)
-    
+
     # Get values associated with an arbitrary row
     r = np.random.randint(0, 15, 1)
     row = pd.DataFrame(data).reset_index().iloc[r]
     oid = int(row.oid)
     aid = int(row.aid)
-    prob = float(pd.DataFrame(data).query('oid=='+str(oid)+' & aid=='+str(aid)).sum())
+    prob = float(pd.DataFrame(data).query(f'oid=={oid} & aid=={aid}').sum())
 
     n = 1000
     count = 0
-    for i in range(n):
+    for _ in range(n):
         choices = monte_carlo_choices(data)
         if (choices.loc[oid] == aid):
             count += 1

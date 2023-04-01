@@ -46,9 +46,7 @@ def great_circle_vec(lat1, lng1, lat2, lng2, earth_radius=6371009):
     cos = (np.sin(phi1) * np.sin(phi2) * np.cos(theta1 - theta2) + np.cos(phi1) * np.cos(phi2))
     arc = np.arccos(cos)
 
-    # return distance in units of earth_radius
-    distance = arc * earth_radius
-    return distance
+    return arc * earth_radius
 
 
 

@@ -99,55 +99,58 @@ class MergedChoiceTable(object):
                  interaction_terms=None, random_state=None):
         
         # Standardize and validate the inputs...
-        
+
         if isinstance(sample_size, float):
             sample_size = int(sample_size)
-        
+
         if (sample_size is not None):
             if (sample_size <= 0):
-                raise ValueError("Cannot sample {} alternatives; to run without sampling "
-                        "leave sample_size=None".format(sample_size))
+                raise ValueError(
+                    f"Cannot sample {sample_size} alternatives; to run without sampling leave sample_size=None"
+                )
 
             # TO DO - should probably just return as many alternatives as we can (and wait 
             # to evaluate this until after evaluating the sampling filters)
             if (replace == False) & (sample_size > alternatives.shape[0]):
-                raise ValueError("Cannot sample without replacement with sample_size {} "
-                        "and n_alts {}".format(sample_size, alternatives.shape[0]))
-        
+                raise ValueError(
+                    f"Cannot sample without replacement with sample_size {sample_size} and n_alts {alternatives.shape[0]}"
+                )
+
         # TO DO - check that dfs have unique indexes
         # TO DO - check that chosen_alternatives correspond correctly to other dfs
         # TO DO - same with weights (could join onto other tables and then split off)
-        
+
         # Normalize chosen_alternatives to a pd.Series
         if (chosen_alternatives is not None) & isinstance(chosen_alternatives, str):
             chosen_alternatives = observations[chosen_alternatives].copy()
             observations = observations.drop(chosen_alternatives.name, axis='columns')
             chosen_alternatives.name = '_' + alternatives.index.name  # avoids conflicts
-        
-        # Allow missing obs and alts, to support .from_df() constructor     
+
+        # Allow missing obs and alts, to support .from_df() constructor
         if (observations is not None):
-        
+
             # Provide default names for observation and alternatives id's
-        
-            if (observations.index.name == None):
+
+            if observations.index.name is None:
                 observations.index.name = 'obs_id'
-        
-            if (alternatives.index.name == None):
+
+            if alternatives.index.name is None:
                 alternatives.index.name = 'alt_id'
-        
+
             # Check for duplicate column names
             obs_cols = list(observations.columns) + list(observations.index.names)
             alt_cols = list(alternatives.columns) + list(alternatives.index.names)
             dupes = set(obs_cols) & set(alt_cols)
-        
+
             if len(dupes) > 0:
-                raise ValueError("Both input tables contain column {}. Please ensure "
-                                 "column names are unique before merging".format(dupes))
-        
+                raise ValueError(
+                    f"Both input tables contain column {dupes}. Please ensure column names are unique before merging"
+                )
+
         # Normalize weights to a pd.Series
         if (weights is not None) & isinstance(weights, str):
             weights = alternatives[weights]
-        
+
         weights_1d = False
         weights_2d = False
         if (weights is not None):
@@ -160,10 +163,10 @@ class MergedChoiceTable(object):
             else:
                 raise ValueError("Length of weights is not aligned with length of "
                                  "alternatives and/or observations")
-        
+
         # TO DO - if user passes a single-column df of weights instead of a series, we
         #   should just silently convert it
-        
+
         self.observations = observations
         self.alternatives = alternatives
         self.chosen_alternatives = chosen_alternatives
@@ -175,17 +178,17 @@ class MergedChoiceTable(object):
 
         self.weights_1d = weights_1d
         self.weights_2d = weights_2d
-        
+
         # Build choice table...
         # Allow missing obs and alts, to support .from_df() constructor     
         if (observations is not None):
 
             if (len(observations) == 0) or (len(alternatives) == 0):
                 self._merged_table = pd.DataFrame()
-        
+
             elif (sample_size is None):
                 self._merged_table = self._build_table_without_sampling()
-        
+
             else:
                 self._merged_table = self._build_table()
         
@@ -500,9 +503,5 @@ class MergedChoiceTable(object):
         str or None
 
         """
-        if ('chosen' in self._merged_table.columns):
-            return 'chosen'
-        
-        else:
-            return None
+        return 'chosen' if ('chosen' in self._merged_table.columns) else None
 
