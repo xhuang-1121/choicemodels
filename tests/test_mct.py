@@ -264,7 +264,7 @@ def test_choice_col_property(obs, alts):
 
     mct = choicemodels.tools.MergedChoiceTable(obs, alts, 
                                  sample_size = 2)
-    assert(mct.choice_col == None)
+    assert mct.choice_col is None
 
 
 def test_from_df(obs, alts):

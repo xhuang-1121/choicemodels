@@ -153,32 +153,31 @@ def iterative_lottery_choices(choosers, alternatives, mct_callable, probs_callab
             
     """
     # TO DO - how does MCT handle sample size greater than the number of available alts?
-    
+
     # Copy the input dataframes to avoid editing the originals
     choosers = choosers.copy()
     alts = alternatives.copy()
-    
+
     if alt_capacity is None:
         alt_capacity = '_capacity'
         alts.loc[:,alt_capacity] = 1
-    
+
     if chooser_size is None:
         chooser_size = '_size'
         choosers.loc[:,chooser_size] = 1
-    
+
     capacity, size = (alt_capacity, chooser_size)
-    
+
     len_choosers = len(choosers)
     valid_choices = pd.Series()
     iter = 0
-    
+
     while (len(valid_choices) < len_choosers):
         iter += 1
-        if max_iter is not None:
-            if (iter > max_iter):
-                break
+        if max_iter is not None and (iter > max_iter):
+            break
         if alts[capacity].max() < choosers[size].min():
-            print("{} choosers cannot be allocated.".format(len(choosers)))
+            print(f"{len(choosers)} choosers cannot be allocated.")
             print("\nRemaining capacity on alternatives but not enough to accodomodate choosers' sizes")
             break
         if chooser_batch_size is None or chooser_batch_size > len(choosers):
@@ -202,8 +201,9 @@ def iterative_lottery_choices(choosers, alternatives, mct_callable, probs_callab
         c_valid = (c._cumsize <= c[capacity])
         valid_choices = pd.concat([valid_choices, c[aid].loc[c_valid]])
 
-        print("Iteration {}: {} of {} valid choices".format(iter, len(valid_choices), 
-                len_choosers))
+        print(
+            f"Iteration {iter}: {len(valid_choices)} of {len_choosers} valid choices"
+        )
 
         # update choosers and alternatives
         choosers = choosers.drop(c.loc[c_valid].index.values)
@@ -214,7 +214,7 @@ def iterative_lottery_choices(choosers, alternatives, mct_callable, probs_callab
 
         full = alts.loc[alts[capacity] == 0]
         alts = alts.drop(full.index)
-        # print("{} remaining alternatives".format(len(alts)))
+            # print("{} remaining alternatives".format(len(alts)))
 
     # retain original index names
     valid_choices.index.name = choosers.index.name
@@ -226,7 +226,7 @@ def iterative_lottery_choices(choosers, alternatives, mct_callable, probs_callab
 def _parallel_lottery_choices_worker(
         choosers, alternatives, choices_dict, chosen_alts,
         mct_callable, probs_callable, alt_capacity=None,
-        chooser_size=None, proc_num=0, batch_size=0):  # pragma: no cover
+        chooser_size=None, proc_num=0, batch_size=0):    # pragma: no cover
 
     """
     Worker process called only by the parallel_lottery_choices() method.
@@ -300,7 +300,7 @@ def _parallel_lottery_choices_worker(
         iter += 1
 
         if alternatives['_capacity'].max() < choosers[size].min():
-            print("{} choosers cannot be allocated.".format(len(choosers)))
+            print(f"{len(choosers)} choosers cannot be allocated.")
             print("\nRemaining capacity on alternatives but "
                   "not enough to accodomodate choosers' sizes")
             break

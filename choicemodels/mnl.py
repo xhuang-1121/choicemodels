@@ -144,10 +144,10 @@ class MultinomialLogit(object):
             self._observation_id_col = self._data.observation_id_col
             self._alternative_id_col = self._data.alternative_id_col
             self._choice_col = self._data.choice_col
-        
+
         else:
             self._df = self._data
-        
+
         if isinstance(self._model_expression, OrderedDict):
             self._estimation_engine = 'PyLogit'
 
@@ -156,7 +156,7 @@ class MultinomialLogit(object):
                 pass
             elif isinstance(self._initial_coefs, list):
                 self._initial_coefs = np.array(self._initial_coefs)
-            elif (self._initial_coefs == None):
+            elif self._initial_coefs is None:
                 self._initial_coefs = np.zeros(len(self._model_expression))
             else:
                 self._initial_coefs = np.repeat(self._initial_coefs,
@@ -165,7 +165,7 @@ class MultinomialLogit(object):
         else:
             self._estimation_engine = 'ChoiceModels'
             self._numobs = self._df.reset_index()[[self._observation_id_col]].\
-                                    drop_duplicates().shape[0]
+                                        drop_duplicates().shape[0]
             self._numalts = self._df.shape[0] // self._numobs
 
         return
@@ -253,9 +253,10 @@ class MultinomialLogitResults(object):
     def __init__(self, model_expression, results=None, fitted_parameters=None, 
                  estimation_engine='ChoiceModels'):
         
-        if (fitted_parameters is None) & (results is not None):
-            if (estimation_engine == 'ChoiceModels'):
-                fitted_parameters = results['fit_parameters']['Coefficient'].tolist()
+        if (fitted_parameters is None) & (results is not None) and (
+            estimation_engine == 'ChoiceModels'
+        ):
+            fitted_parameters = results['fit_parameters']['Coefficient'].tolist()
 
         self.estimation_engine = estimation_engine
         self.model_expression = model_expression
@@ -546,36 +547,35 @@ def mnl_loglik(beta, data, chosen, numalts, weights=None, lcgrad=False,
     if lcgrad:
         assert weights
         gradmat = weights.subtract(probs).reshape(probs.size(), 1)
-        gradarr = data.multiply(gradmat)
     else:
-        if not weights:
-            gradmat = chosen.subtract(probs).reshape(probs.size(), 1)
-        else:
-            gradmat = chosen.subtract(probs).multiply_by_row(
-                weights).reshape(probs.size(), 1)
-        gradarr = data.multiply(gradmat)
-
+        gradmat = (
+            chosen.subtract(probs)
+            .multiply_by_row(weights)
+            .reshape(probs.size(), 1)
+            if weights
+            else chosen.subtract(probs).reshape(probs.size(), 1)
+        )
+    gradarr = data.multiply(gradmat)
     if stderr:
         gradmat = data.multiply_by_row(gradmat.reshape(1, gradmat.size()))
         gradmat.reshape(numvars, numalts * numobs)
         return get_standard_error(get_hessian(gradmat.get_mat()))
 
     chosen.reshape(numalts, numobs)
-    if weights is not None:
-        if probs.shape() == weights.shape():
-            loglik = ((probs.log(inplace=True)
-                       .element_multiply(weights, inplace=True)
-                       .element_multiply(chosen, inplace=True))
-                      .sum(axis=1).sum(axis=0))
-        else:
-            loglik = ((probs.log(inplace=True)
-                       .multiply_by_row(weights, inplace=True)
-                       .element_multiply(chosen, inplace=True))
-                      .sum(axis=1).sum(axis=0))
-    else:
+    if weights is None:
         loglik = (probs.log(inplace=True).element_multiply(
             chosen, inplace=True)).sum(axis=1).sum(axis=0)
 
+    elif probs.shape() == weights.shape():
+        loglik = ((probs.log(inplace=True)
+                   .element_multiply(weights, inplace=True)
+                   .element_multiply(chosen, inplace=True))
+                  .sum(axis=1).sum(axis=0))
+    else:
+        loglik = ((probs.log(inplace=True)
+                   .multiply_by_row(weights, inplace=True)
+                   .element_multiply(chosen, inplace=True))
+                  .sum(axis=1).sum(axis=0))
     if loglik.typ == 'numpy':
         loglik, gradarr = loglik.get_mat(), gradarr.get_mat().flatten()
     else:
@@ -661,9 +661,9 @@ def mnl_estimate(data, chosen, numalts, GPU=False, coeffrange=(-1000, 1000),
 
     """
     logger.debug(
-        'start: MNL fit with len(data)={} and numalts={}'.format(
-            len(data), numalts))
-    atype = 'numpy' if not GPU else 'cuda'
+        f'start: MNL fit with len(data)={len(data)} and numalts={numalts}'
+    )
+    atype = 'cuda' if GPU else 'numpy'
 
     numvars = data.shape[1]
     numobs = data.shape[0] // numalts
@@ -696,7 +696,7 @@ def mnl_estimate(data, chosen, numalts, GPU=False, coeffrange=(-1000, 1000),
 
     if bfgs_result[2]['warnflag'] > 0:
         logger.warning("mnl did not converge correctly: %s",  bfgs_result)
-    
+
     beta = bfgs_result[0]
     stderr = mnl_loglik(
         beta, data, chosen, numalts, weights, stderr=1, lcgrad=lcgrad)
